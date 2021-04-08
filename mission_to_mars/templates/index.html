@@ -1,30 +1,66 @@
-from flask import Flask, render_template, redirect
-from flask_pymongo import PyMongo
-import scrape_mars
-import pandas as pd
-from bs4 import BeautifulSoup
-# Create an instance of Flask
-app = Flask(__name__)
-# Use PyMongo to establish Mongo connection
-mongo = PyMongo(app, uri="mongodb://localhost:27017/mars_db")
-@app.route("/")
-def home():
-    # Find one record of data from the mongo database
-    mars_data = mongo.db.mars_collection.find_one()
-    print(mars_data)
-    # Return template and data
-    return render_template("index.html", planet=mars_data,hemisphere=mars_data['hemisphere_image_urls'],featured_imgs=mars_data['featured_img_url'])
-@app.route("/scrape")   
-def scrape():
-    # Run the scrape function
-    mars_data = scrape_mars.scrape_info()
-    # Update the Mongo database using update and upsert=True
-    #mongo.db.mars_collection.drop()
-    mongo.db.mars_collection.insert_one(mars_data)
-    # mongo.db.mars_collection.update({}, mars_data, upsert=True)
-    # #insert a python dictionary returned by function scrape() as a collection
-    # mongo.db.mars_collection.insert_one(mars_data)
-    # Redirect back to home page
-    return redirect("/", 302)
-if __name__ == "__main__":
-    app.run(debug=True)
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <meta http-equiv="X-UA-Compatible" content="ie=edge">
+        <title>Web Scraping Challenge - Mission to Mars</title>
+        <link rel="stylesheet" href="style.css">
+        <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css"> 
+    </head>
+    <body>
+        <div class="container-fluid">
+            <div class="jumbotron text-center">
+                <h1 id="byline">Mission to Mars</h1>
+                <p><a class="btn btn-primary btn-lg" href="/scrape" role="button">Scrape New Data</a></p>
+            </div>
+            <h2>Latest Mars News</h2>
+            <h4>{{ planet.news_title }}</h4>
+            <p>{{ planet.news_paragraph }}</p>
+        </div>
+        <div class="container-fluid content">
+            <div class="row">
+                <div class="col-lg-8 col-md-12">
+                    <div class="card">
+                        <h2>Featured Mars Image</h2>
+                        <img src="{{featured_imgs}}" class="img-responsive"  alt="JPL Featured Mars Space Image">      
+                    </div>
+                </div>
+                <div class= "col-lg-4 col-md-12">
+                    <div class="card">
+                        <h2> Mars Facts</h2>
+                        <table class="table">
+                            {{ planet.mars_table | safe }}
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="container-fluid content">
+            <div class="row">
+                <div class="col-lg-1 col-md-1">
+                </div>
+                <div class="col-lg-10 col-md-10">
+                    <div class="card">
+                        <h3 class="text-center"> Mars Hemispheres</h3>
+                        <hr>
+                        <div class="row">
+                            {%for hemi in hemisphere%}
+                            <div class='col-md-6'>
+                              <figure>
+                                <a href="{{hemi.img_url}}" target="_blank">
+                                    <img class="img-responsive"
+                                    style="box-shadow: 10px 10px 5px #ccc;border-radius:15px;" src="{{hemi.img_url}}"
+                                    alt="{{hemi.title}}"></a>
+                                <figcaption style="text-align:center;font-weight: bold;padding: 3px;font-size: medium;">{{hemi.title}}
+                                </figcaption>
+                              </figure>
+                            </div>
+                            {% endfor %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </body>
+</html>
